@@ -16,6 +16,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from homeassistant.util.aiohttp import MockRequest
+from homeassistant.util.yaml import dump, load_yaml
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 import voluptuous as vol
@@ -422,11 +423,31 @@ async def test_blueprint_unmodified_copy_is_updated(hass: HomeAssistant) -> None
     assert ir.async_get(hass).async_get_issue(DOMAIN, "blueprint_outdated") is None
 
 
+async def test_blueprint_reserialized_copy_counts_as_current(hass: HomeAssistant) -> None:
+    """A copy saved through Home Assistant's blueprint API has different bytes but the same YAML."""
+    entry = await _setup(hass)
+    bp = Path(hass.config.path("blueprints/automation/evac_relay/evac_relay_response.yaml"))
+    reserialized = dump(load_yaml(str(BLUEPRINT_SRC))).encode()
+    assert reserialized != await hass.async_add_executor_job(BLUEPRINT_SRC.read_bytes)
+    await hass.async_add_executor_job(bp.write_bytes, reserialized)
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert await hass.async_add_executor_job(bp.read_bytes) == reserialized
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "blueprint_outdated") is None
+    # It is now known as an Evac Relay copy, so a later bundled change replaces it.
+    store = await Store(hass, 1, f"{DOMAIN}.blueprint").async_load()
+    assert store["installed_sha256"] == hashlib.sha256(reserialized).hexdigest()
+
+
 async def test_blueprint_edited_copy_is_kept(hass: HomeAssistant) -> None:
     """A copy the user edited is left alone and flagged in Repairs."""
     entry = await _setup(hass)
     bp = Path(hass.config.path("blueprints/automation/evac_relay/evac_relay_response.yaml"))
-    edited = await hass.async_add_executor_job(bp.read_bytes) + b"\n# household tweak\n"
+    original = await hass.async_add_executor_job(bp.read_bytes)
+    edited = original.replace(b"default: 0.8", b"default: 0.5")
+    assert edited != original
     await hass.async_add_executor_job(bp.write_bytes, edited)
 
     await hass.config_entries.async_reload(entry.entry_id)

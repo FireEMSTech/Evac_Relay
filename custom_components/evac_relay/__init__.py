@@ -14,13 +14,14 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import SIGNAL_CONFIG_ENTRY_CHANGED, ConfigEntry, ConfigEntryState
 from homeassistant.const import CONF_NAME, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.network import NoURLAvailableError
 from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util.yaml import load_yaml
 import voluptuous as vol
 
 from .classifier import Level
@@ -319,23 +320,34 @@ async def _install_blueprint(hass: HomeAssistant) -> None:
     store: Store[dict[str, str]] = Store(hass, BLUEPRINT_STORE_VERSION, f"{DOMAIN}.blueprint")
     remembered = ((await store.async_load()) or {}).get("installed_sha256")
 
-    def _sync() -> tuple[str, str]:
-        bundled = hashlib.sha256(BLUEPRINT_SRC.read_bytes()).hexdigest()
+    def _sha(path: Path) -> str:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    def _same_blueprint(a: Path, b: Path) -> bool:
+        """Byte-equal, or the same YAML: Home Assistant re-serializes blueprints saved through its API."""
+        if filecmp.cmp(a, b, shallow=False):
+            return True
+        try:
+            return load_yaml(str(a)) == load_yaml(str(b))
+        except HomeAssistantError:
+            return False
+
+    def _sync() -> tuple[str, str | None]:
         if dest.exists():
-            if filecmp.cmp(BLUEPRINT_SRC, dest, shallow=False):
-                return "current", bundled
-            if hashlib.sha256(dest.read_bytes()).hexdigest() != remembered:
-                return "outdated", bundled
+            if _same_blueprint(BLUEPRINT_SRC, dest):
+                return "current", _sha(dest)
+            if _sha(dest) != remembered:
+                return "outdated", None
             status = "updated"
         else:
             status = "installed"
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(BLUEPRINT_SRC, dest)
-        return status, bundled
+        return status, _sha(dest)
 
-    status, bundled = await hass.async_add_executor_job(_sync)
-    if status != "outdated" and remembered != bundled:
-        await store.async_save({"installed_sha256": bundled})
+    status, installed = await hass.async_add_executor_job(_sync)
+    if installed and installed != remembered:
+        await store.async_save({"installed_sha256": installed})
     if status == "updated":
         _LOGGER.info("Replaced the unmodified Evac Relay blueprint with the bundled version")
         if hass.services.has_service("automation", "reload"):

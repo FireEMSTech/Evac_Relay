@@ -4,6 +4,12 @@ All notable changes to Evac Relay. The format follows [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-27
+
+### Fixed
+
+- The blueprint update check compares parsed YAML, not bytes. A copy saved through Home Assistant's blueprint API (which re-serializes it) no longer shows as outdated, and is adopted as an Evac Relay copy for future automatic updates.
+
 ## [0.1.1] - 2026-09-27
 
 ### Fixed
@@ -31,6 +37,7 @@ First public release.
 - Repairs issues for incomplete setup, missing IMAP entries, Twilio URL problems, and outdated blueprint copies.
 - Lake County, CA county profile and setup guide.
 
-[Unreleased]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/FireEMSTech/Evac_Relay/releases/tag/v0.1.0
