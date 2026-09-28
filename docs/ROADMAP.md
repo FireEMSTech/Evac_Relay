@@ -29,5 +29,6 @@ An IPAWS MOA is held by a provider, not by each household. The practical shape i
 
 ## Other planned work
 
-- More county profiles (wording and zone formats).
+- More county profiles (wording and zone formats). The generic profile understands the Cal OES standard terms (Evacuation Order, Evacuation Warning, Shelter in Place), which most California counties use with Genasys Protect zones. States on the "Ready, Set, Go" scale (Oregon, Washington, parts of Colorado and Arizona: Level 1 Be Ready, Level 2 Be Set, Level 3 Go Now) need a profile that maps those levels.
+- Apple TV full-screen video once pyatv ships play_url support for tvOS 26 and newer and Home Assistant picks it up.
 - Optional LLM summary of long alert text for announcements, never used for the alarm decision.

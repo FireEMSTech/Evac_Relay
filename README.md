@@ -103,7 +103,7 @@ Home Assistant's IMAP integration reports the newest message in the folder. If s
 
 ### 3. Scanner
 
-Paste the direct stream URL of a local fire/EMS feed from [Broadcastify](https://www.broadcastify.com/listen/). Some feeds and ad-free streams need Broadcastify Premium. Play the URL on one speaker first to confirm it works.
+Paste the direct stream URL of a local fire/EMS feed from [Broadcastify](https://www.broadcastify.com/listen/), not the feed's web page (the wizard rejects `broadcastify.com/listen/...` addresses). Broadcastify now serves direct streams only to Premium accounts, in the form `https://USERNAME:PASSWORD@audio.broadcastify.com/FEEDID.mp3`. That URL contains your password: Evac Relay keeps it out of recorder history, but anyone who can read your Home Assistant configuration can see it, so use a Premium account created just for this. Play the URL on one speaker first to confirm it works; a Sonos answers `UPnP Error 714: Illegal MIME-Type` when the URL is not an audio stream.
 
 ### 4. House alarm blueprint
 
@@ -112,10 +112,10 @@ Create an automation from **Evac Relay: house alarm**. When Evac Relay ships a n
 | Input | Notes |
 |---|---|
 | Phone notify actions | One per line, e.g. `notify.mobile_app_pixel_8`. iOS gets a critical alert; Android uses the alarm channel |
-| Speakers | Players that support announcements (Sonos, ESPHome, Music Assistant) pause and resume; others, such as Cast, stop what was playing |
+| Speakers | Players that support announcements (Sonos, ESPHome, Music Assistant) pause and resume; others, such as Cast, stop what was playing. **Add Apple TVs here**: audio AirPlay still works on current tvOS, interrupts whatever is on, and puts the TV on the full-screen AirPlay screen while the alarm speaks |
 | Voice satellites | Home Assistant Voice PE and other Assist satellites |
 | TV remotes | Wakes Apple TV and Android TV Remote devices |
-| TVs | Cast devices, and Apple TVs where AirPlay video playback from Home Assistant works, play a full-screen alert video with an alarm tone. On current tvOS the Apple TV integration frequently fails with "not authenticated" or HTTP 500 and only pauses what was playing, so run **Test alarm** before leaving an Apple TV in this list |
+| TVs | Cast devices play a full-screen alert video with an alarm tone. Not for Apple TVs: the released [pyatv](https://github.com/postlund/pyatv) cannot deliver video URLs to tvOS 26 or newer (the legacy `/play` handshake activates without media arriving, see pyatv [#2512](https://github.com/postlund/pyatv/issues/2512) and [#2846](https://github.com/postlund/pyatv/pull/2846)); the attempt only pauses what was playing. Put Apple TVs under Speakers instead |
 | TV overlays | Android/Google TV with the Notifications for Android TV app |
 | Scanner speakers | Plays the scanner stream set in Evac Relay. Keep these separate from announcement speakers that don't support announcements |
 | Home Assistant LAN address | TVs fetch the alert video from `<address>/evac_relay_media/` |

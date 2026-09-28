@@ -478,6 +478,10 @@ async def test_wizard_basic_path(hass: HomeAssistant, aioclient_mock) -> None:
     assert r["step_id"] == "scanner"
     r = await hass.config_entries.flow.async_configure(fid, {"scanner_url": "not a url"})
     assert r["errors"] == {"scanner_url": "invalid_url"}
+    r = await hass.config_entries.flow.async_configure(
+        fid, {"scanner_url": "https://www.broadcastify.com/listen/feed/12345"}
+    )
+    assert r["errors"] == {"scanner_url": "page_not_stream"}
     r = await hass.config_entries.flow.async_configure(fid, {"scanner_url": "https://stream.example/feed"})
     assert r["step_id"] == "nws"
     r = await hass.config_entries.flow.async_configure(fid, {"nws_enabled": False, "nws_triggers_alarm": False})

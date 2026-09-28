@@ -8,6 +8,7 @@ stream, and NWS. Twilio is an advanced step offered at the end.
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlsplit
 
 from homeassistant.components import webhook
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
@@ -79,7 +80,16 @@ def _check_url(data: dict[str, Any], key: str, https_only: bool) -> dict[str, st
         return {key: "https_required"}
     if not url.startswith(("https://", "http://")):
         return {key: "invalid_url"}
+    if _is_listen_page(url):
+        return {key: "page_not_stream"}
     return {}
+
+
+def _is_listen_page(url: str) -> bool:
+    """A scanner directory's web page (with an embedded player) rather than the stream itself."""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    return host.endswith("broadcastify.com") and parts.path.startswith("/listen/")
 
 
 def _check_twilio(data: dict[str, Any]) -> dict[str, str]:

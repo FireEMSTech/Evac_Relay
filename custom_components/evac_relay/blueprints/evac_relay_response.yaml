@@ -33,6 +33,8 @@ blueprint:
       description: >
         Players that support announcements (Sonos, ESPHome, Music Assistant)
         pause and resume what they were playing. Others, such as Cast, stop it.
+        Add Apple TVs here: audio AirPlay interrupts whatever is on and takes
+        over the screen while the alarm speaks.
       default: []
       selector:
         entity:
@@ -70,12 +72,10 @@ blueprint:
             - domain: remote
           multiple: true
     tv_players:
-      name: TVs to show the full-screen alert (Chromecast/Google TV, Apple TV AirPlay)
+      name: TVs to show the full-screen alert video (Chromecast/Google TV)
       description: >
-        Apple TV needs working AirPlay video playback from Home Assistant. On current tvOS
-        the Apple TV integration often cannot play a URL (the log shows "not authenticated"
-        or HTTP 500) and the attempt only pauses what was playing, so test with the
-        Test alarm before leaving an Apple TV here.
+        Not for Apple TVs: Home Assistant cannot play a video URL on tvOS 26 or newer
+        and the attempt only pauses what was playing. List Apple TVs under Speakers.
       default: []
       selector:
         entity:

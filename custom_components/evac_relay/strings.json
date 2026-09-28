@@ -74,6 +74,7 @@
       "disclaimer_required": "Please confirm you understand this is not an official alert system.",
       "invalid_zones": "Enter zone IDs exactly as the county writes them, such as LAK-E123, separated by commas or new lines. Place names and entries like Zone 5 are too generic to match safely.",
       "invalid_url": "Enter a full URL starting with http:// or https://",
+      "page_not_stream": "That is the feed's web page, not the audio stream. Speakers need the direct stream URL. Broadcastify now serves direct streams only to Premium accounts, as https://USERNAME:PASSWORD@audio.broadcastify.com/FEEDID.mp3; that URL contains your password, so Evac Relay keeps it out of history.",
       "https_required": "The public webhook URL must start with https://",
       "twilio_token_required": "A Twilio auth token is required so every request can be verified.",
       "no_sources": "Turn on at least one alert source: email, NWS, or Twilio."
@@ -131,6 +132,7 @@
       "disclaimer_required": "Please confirm you understand this is not an official alert system.",
       "invalid_zones": "Enter zone IDs exactly as the county writes them, such as LAK-E123, separated by commas or new lines. Place names and entries like Zone 5 are too generic to match safely.",
       "invalid_url": "Enter a full URL starting with http:// or https://",
+      "page_not_stream": "That is the feed's web page, not the audio stream. Speakers need the direct stream URL. Broadcastify now serves direct streams only to Premium accounts, as https://USERNAME:PASSWORD@audio.broadcastify.com/FEEDID.mp3; that URL contains your password, so Evac Relay keeps it out of history.",
       "https_required": "The public webhook URL must start with https://",
       "twilio_token_required": "A Twilio auth token is required so every request can be verified.",
       "no_sources": "Turn on at least one alert source: email, NWS, or Twilio."
