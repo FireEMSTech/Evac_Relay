@@ -1,0 +1,293 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Evac Relay setup (1 of 6): welcome",
+        "description": "Evac Relay turns county evacuation alerts into house-wide alarms: speakers, TVs, phones, and a scanner stream.\n\n**It is not an official alert system.** It relays alerts you already receive, can be delayed or fail (power, internet, email), and never replaces Wireless Emergency Alerts, county texts and calls, or following official instructions. Keep those turned on.\n\nConfirm the home location below. It is used for National Weather Service alerts.",
+        "data": {
+          "name": "Name for this home",
+          "profile": "County",
+          "latitude": "Latitude",
+          "longitude": "Longitude",
+          "acknowledge_disclaimer": "I understand this supplements, and does not replace, official alerts"
+        }
+      },
+      "zones": {
+        "title": "Step 2 of 6: your evacuation zones",
+        "description": "1. Open the [Genasys Protect map]({zone_url}) and search your address.\n2. Copy the zone ID shown on the zone card, exactly as written.\n3. Add any other zones you care about (a parent's house, school, work), one per line.\n\nAlerts that name one of these zones sound the alarm. Alerts for other zones only notify you. Leave this empty to treat every evacuation message sent to you as yours; {alert_system} already targets messages by the addresses you register.",
+        "data": {
+          "zones": "Zone IDs"
+        }
+      },
+      "county_alerts": {
+        "title": "Step 3 of 6: sign up for {alert_system}",
+        "description": "Evac Relay listens to the same alerts your county sends to people.\n\n1. Enroll at [{alert_system}]({alert_signup_url}).\n2. Register your home address (and any other addresses matching the zones you entered).\n3. Add an **email address that Home Assistant will read** as one of your email contacts. A dedicated Gmail account works best.\n4. Keep text and voice alerts going to your own phones too.\n\nYou can finish this later; Home Assistant will remind you under Settings > Repairs.",
+        "data": {
+          "county_alerts_registered": "I've enrolled and added the email Home Assistant will read"
+        }
+      },
+      "email": {
+        "title": "Step 4 of 6: connect the alert email",
+        "description": "Home Assistant reads alert email with its built-in IMAP integration. IMAP accounts found: **{imap_status}**.\n\nIf you haven't added one yet:\n1. For Gmail, turn on 2-step verification and [create an app password]({gmail_app_password_url}).\n2. In Gmail, make a filter that labels mail from {alert_system} (for example label `evac`).\n3. Add the [IMAP integration]({imap_docs_url}) with server `imap.gmail.com`, port 993, folder = that label, search `UNSEEN`.\n4. Come back through Settings > Devices & services > Evac Relay > Configure to select it.\n\nYou can skip this now and connect it later.",
+        "data": {
+          "imap_entries": "Email account(s) to watch",
+          "imap_senders": "Only accept email whose sender address or name contains (optional, comma separated)"
+        }
+      },
+      "scanner": {
+        "title": "Step 5 of 6: scanner radio",
+        "description": "During an alarm Evac Relay can play a live fire/EMS scanner feed on your speakers.\n\n1. Find a {county} fire feed in the [Broadcastify directory]({scanner_directory_url}).\n2. Paste the feed's direct stream URL here. Some feeds and ad-free streams need a Broadcastify Premium account.\n\nOptional. Test it by playing the URL on one speaker before relying on it.",
+        "data": {
+          "scanner_url": "Scanner stream URL"
+        }
+      },
+      "nws": {
+        "title": "Step 6 of 6: National Weather Service",
+        "description": "NWS alerts are a free backup source. They don't include county evacuation zones, so by default they notify you without sounding the full alarm.",
+        "data": {
+          "nws_enabled": "Watch NWS alerts for this location",
+          "nws_triggers_alarm": "Let NWS evacuation-type alerts sound the full alarm"
+        }
+      },
+      "finish": {
+        "title": "Almost done",
+        "description": "Finish now, or add a Twilio phone number so county texts and robocalls reach Home Assistant directly.",
+        "menu_options": {
+          "create": "Finish setup",
+          "twilio": "Advanced: add a Twilio number"
+        }
+      },
+      "twilio": {
+        "title": "Advanced: Twilio number",
+        "description": "1. Buy a local number in Twilio and upgrade the account (trial accounts can't receive short codes).\n2. Ask Twilio support to enable receiving SMS from short codes. Delivery is still not guaranteed, so voice matters.\n3. Register the Twilio number in your county alerts as both a **text** and a **voice** contact.\n4. Paste your Twilio auth token here. After setup, Home Assistant shows the webhook URLs to paste into Twilio. With Home Assistant Cloud (Nabu Casa) the URL is created automatically.",
+        "data": {
+          "twilio_auth_token": "Twilio auth token",
+          "twilio_allowed_from": "Only accept from these numbers (optional, comma separated)",
+          "public_webhook_url": "Public webhook URL override (optional)"
+        },
+        "data_description": {
+          "public_webhook_url": "Leave empty to use Nabu Casa or your external URL. Set only if Twilio reaches Home Assistant through something else, such as Cloudflare. It must match exactly what Twilio calls."
+        }
+      }
+    },
+    "error": {
+      "disclaimer_required": "Please confirm you understand this is not an official alert system.",
+      "invalid_zones": "Enter zone IDs exactly as the county writes them, such as LAK-E123, separated by commas or new lines. Place names and entries like Zone 5 are too generic to match safely.",
+      "invalid_url": "Enter a full URL starting with http:// or https://",
+      "https_required": "The public webhook URL must start with https://",
+      "twilio_token_required": "A Twilio auth token is required so every request can be verified.",
+      "no_sources": "Turn on at least one alert source: email, NWS, or Twilio."
+    },
+    "abort": {}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Evac Relay options",
+        "menu_options": {
+          "alerts": "Zones and alert sources",
+          "scanner": "Scanner stream",
+          "twilio": "Twilio (advanced)",
+          "save": "Save and close"
+        }
+      },
+      "alerts": {
+        "title": "Zones and alert sources",
+        "data": {
+          "zones": "Zone IDs",
+          "profile": "County",
+          "county_alerts_registered": "Enrolled in county alerts with the watched email",
+          "imap_entries": "Email account(s) to watch",
+          "imap_senders": "Only accept email from senders containing",
+          "nws_enabled": "Watch NWS alerts",
+          "nws_triggers_alarm": "Let NWS evacuation-type alerts sound the full alarm",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        },
+        "data_description": {
+          "imap_senders": "Matches the sender address or display name, e.g. everbridge or LakeCoAlerts. Leave empty to accept anything in the watched folder."
+        }
+      },
+      "scanner": {
+        "title": "Scanner stream",
+        "data": {
+          "scanner_url": "Scanner stream URL"
+        }
+      },
+      "twilio": {
+        "title": "Twilio (advanced)",
+        "data": {
+          "twilio_enabled": "Enable Twilio",
+          "twilio_auth_token": "Twilio auth token",
+          "twilio_allowed_from": "Only accept from these numbers",
+          "public_webhook_url": "Public webhook URL override"
+        },
+        "data_description": {
+          "twilio_auth_token": "Leave empty to keep the stored token."
+        }
+      }
+    },
+    "error": {
+      "disclaimer_required": "Please confirm you understand this is not an official alert system.",
+      "invalid_zones": "Enter zone IDs exactly as the county writes them, such as LAK-E123, separated by commas or new lines. Place names and entries like Zone 5 are too generic to match safely.",
+      "invalid_url": "Enter a full URL starting with http:// or https://",
+      "https_required": "The public webhook URL must start with https://",
+      "twilio_token_required": "A Twilio auth token is required so every request can be verified.",
+      "no_sources": "Turn on at least one alert source: email, NWS, or Twilio."
+    }
+  },
+  "selector": {
+    "profile": {
+      "options": {
+        "generic": "Other US county",
+        "lake_county_ca": "Lake County, CA"
+      }
+    }
+  },
+  "issues": {
+    "no_email_source": {
+      "title": "Evac Relay is not reading county alert email",
+      "description": "Evac Relay for {name} has no email account selected, so county evacuation email will not sound the alarm. Add the IMAP integration for the address registered with your county alerts, then select it under Evac Relay > Configure > Zones and alert sources."
+    },
+    "county_not_registered": {
+      "title": "Finish county alert sign-up",
+      "description": "Evac Relay for {name} is set up, but you haven't confirmed enrolling in {alert_system} with the email Home Assistant reads. Enroll at {alert_signup_url}, then check the box under Evac Relay > Configure > Zones and alert sources."
+    },
+    "imap_entry_missing": {
+      "title": "Evac Relay is watching an email account that no longer exists",
+      "description": "Evac Relay for {name} has an email account selected that was removed or re-added. County evacuation email from it will not sound the alarm. Open Evac Relay > Configure > Zones and alert sources and select the current IMAP account."
+    },
+    "twilio_url_unavailable": {
+      "title": "Evac Relay has no public Twilio webhook URL",
+      "description": "Evac Relay for {name} could not get a public URL for Twilio. Texts and calls to your Twilio number will not reach Home Assistant. If you use Home Assistant Cloud, this usually fixes itself once the cloud connects. Otherwise set an external URL in Home Assistant, or a public webhook URL override in Evac Relay > Configure > Twilio."
+    },
+    "twilio_signature": {
+      "title": "Twilio requests are being rejected",
+      "description": "Evac Relay for {name} rejected several Twilio requests because their signature didn't match. Check that the webhook URLs in Twilio exactly match the ones Evac Relay showed, and that the auth token is current."
+    },
+    "blueprint_outdated": {
+      "title": "The Evac Relay alarm blueprint has an update",
+      "description": "The blueprint file at {path} differs from the version bundled with this Evac Relay release, either because you edited it or because Evac Relay was updated. To take the new version, rename or delete that file and reload Evac Relay; it will be reinstalled, and existing automations keep their settings."
+    },
+    "twilio_error": {
+      "title": "Evac Relay could not process a Twilio request",
+      "description": "Evac Relay for {name} hit an error handling a text or call from Twilio. Check the Home Assistant log for details and report it on the Evac Relay issue tracker. Email and NWS alerts are not affected."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "level": {
+        "name": "Evacuation level",
+        "state": {
+          "none": "None",
+          "warning": "Evacuation warning",
+          "shelter": "Shelter in place",
+          "order": "Evacuation order"
+        }
+      },
+      "last_message": {
+        "name": "Last evacuation message"
+      },
+      "nws_last_poll": {
+        "name": "NWS last poll"
+      }
+    },
+    "binary_sensor": {
+      "alarm_active": {
+        "name": "Alarm active"
+      },
+      "acknowledged": {
+        "name": "Alarm acknowledged"
+      }
+    },
+    "button": {
+      "acknowledge": {
+        "name": "Acknowledge alarm"
+      },
+      "clear": {
+        "name": "Clear alarm"
+      },
+      "test": {
+        "name": "Test alarm"
+      }
+    }
+  },
+  "services": {
+    "acknowledge": {
+      "name": "Acknowledge",
+      "description": "Stop the repeating alarm. The evacuation level stays set.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Home",
+          "description": "Limit to one home. Defaults to all."
+        }
+      }
+    },
+    "clear": {
+      "name": "Clear",
+      "description": "Return to normal. Only do this after confirming with official sources.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Home",
+          "description": "Limit to one home. Defaults to all."
+        }
+      }
+    },
+    "test": {
+      "name": "Test",
+      "description": "Raise a clearly labeled test alarm.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Home",
+          "description": "Limit to one home. Defaults to all."
+        },
+        "level": {
+          "name": "Level",
+          "description": "Level to simulate."
+        }
+      }
+    },
+    "ingest": {
+      "name": "Ingest message",
+      "description": "Feed alert text from any other source, such as an Android notification sensor.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Home",
+          "description": "Limit to one home. Defaults to all."
+        },
+        "text": {
+          "name": "Text",
+          "description": "Full alert text."
+        },
+        "source": {
+          "name": "Source",
+          "description": "Label recorded with the message."
+        },
+        "can_trigger": {
+          "name": "Can trigger alarm",
+          "description": "Off by default: the message is recorded and emitted as an event but never sounds the alarm. Turn on only for trusted sources."
+        }
+      }
+    },
+    "end_test": {
+      "name": "End test",
+      "description": "End a running test alarm. Does nothing if a real alarm has replaced it.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Home",
+          "description": "Limit to one home. Defaults to all."
+        }
+      }
+    },
+    "dispatch": {
+      "name": "Dispatch actions",
+      "description": "Run a list of actions independently, so a missing or failing device never stops the rest. Used by the alarm blueprint.",
+      "fields": {
+        "calls": {
+          "name": "Calls",
+          "description": "List of calls, each with an action, an optional target, and optional data."
+        }
+      }
+    }
+  }
+}

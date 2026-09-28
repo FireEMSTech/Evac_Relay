@@ -1,0 +1,271 @@
+blueprint:
+  name: "Evac Relay: house alarm"
+  description: >
+    Turns an Evac Relay alert into a house-wide alarm: critical phone alerts
+    with an Acknowledge button, TVs woken and taken over with a full-screen
+    alert, repeating announcements on speakers and voice satellites until
+    someone acknowledges, and a live scanner stream. Evacuation orders repeat
+    every minute, shelter-in-place every 5 minutes, warnings every 10 minutes,
+    for up to an hour. The alarm resumes after a Home Assistant restart if it
+    was still unacknowledged. A test alarm plays one labeled cycle and ends.
+    Every device call goes through evac_relay.dispatch, so a missing or
+    offline device never stops the rest of the alarm.
+  domain: automation
+  source_url: https://github.com/FireEMSTech/Evac_Relay/blob/main/custom_components/evac_relay/blueprints/evac_relay_response.yaml
+  input:
+    level_sensor:
+      name: Evac Relay level sensor
+      selector:
+        entity:
+          filter:
+            - integration: evac_relay
+              domain: sensor
+              device_class: enum
+    phones:
+      name: Phone notify actions
+      description: One per line, e.g. notify.mobile_app_pixel_8
+      default: ""
+      selector:
+        text:
+          multiline: true
+    speakers:
+      name: Speakers for announcements
+      description: >
+        Players that support announcements (Sonos, ESPHome, Music Assistant)
+        pause and resume what they were playing. Others, such as Cast, stop it.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: media_player
+          multiple: true
+    tts_entity:
+      name: Text-to-speech engine
+      selector:
+        entity:
+          filter:
+            - domain: tts
+    satellites:
+      name: Voice satellites (HA Voice PE etc.)
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: assist_satellite
+          multiple: true
+    alarm_volume:
+      name: Speaker volume during alarm
+      default: 0.8
+      selector:
+        number:
+          min: 0.2
+          max: 1
+          step: 0.05
+    tv_remotes:
+      name: TV remotes to wake (Apple TV, Android TV Remote)
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: remote
+          multiple: true
+    tv_players:
+      name: TVs to show the full-screen alert (Apple TV AirPlay, Chromecast/Google TV)
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: media_player
+          multiple: true
+    tv_overlays:
+      name: Android/Google TV overlay notify actions
+      description: One per line, from the Notifications for Android TV integration, e.g. notify.living_room_tv
+      default: ""
+      selector:
+        text:
+          multiline: true
+    scanner_players:
+      name: Speakers that play the scanner stream
+      description: Uses the scanner URL set in Evac Relay. Stopped when the alarm is cleared.
+      default: []
+      selector:
+        entity:
+          filter:
+            - domain: media_player
+          multiple: true
+    ha_lan_url:
+      name: Home Assistant LAN address
+      description: TVs fetch the alert video from here, e.g. http://192.168.1.10:8123
+      selector:
+        text:
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    id: alarm
+    event_type: evac_relay_alarm
+  - trigger: homeassistant
+    id: start
+    event: start
+  - trigger: event
+    id: ack
+    event_type: mobile_app_notification_action
+  - trigger: event
+    id: cleared
+    event_type: evac_relay_cleared
+
+variables:
+  level_sensor: !input level_sensor
+  phones_raw: !input phones
+  overlays_raw: !input tv_overlays
+  speakers: !input speakers
+  satellites: !input satellites
+  tts_entity: !input tts_entity
+  alarm_volume: !input alarm_volume
+  tv_remotes: !input tv_remotes
+  tv_players: !input tv_players
+  scanner_players: !input scanner_players
+  ha_lan_url: !input ha_lan_url
+  entry_id: "{{ config_entry_id(level_sensor) }}"
+  ack_action: "EVAC_RELAY_ACK_{{ entry_id }}"
+  phones: "{{ phones_raw.split('\n') | map('trim') | select | list }}"
+  overlays: "{{ overlays_raw.split('\n') | map('trim') | select | list }}"
+
+conditions:
+  - condition: template
+    value_template: >
+      {% if trigger.id == 'alarm' %}
+        {{ trigger.event.data.entry_id == entry_id }}
+      {% elif trigger.id == 'cleared' %}
+        {{ trigger.event.data.entry_id == entry_id and not trigger.event.data.get('test', false) }}
+      {% elif trigger.id == 'ack' %}
+        {{ trigger.event.data.action == ack_action }}
+      {% else %}
+        {{ is_state_attr(level_sensor, 'active', true) and not is_state_attr(level_sensor, 'acknowledged', true) }}
+      {% endif %}
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: ack
+        sequence:
+          - action: evac_relay.acknowledge
+            data: { config_entry_id: "{{ entry_id }}" }
+          - stop: acknowledged from phone
+      - conditions:
+          - condition: trigger
+            id: cleared
+        sequence:
+          - action: evac_relay.dispatch
+            data:
+              calls: >
+                {{ [{'action': 'media_player.media_stop', 'target': {'entity_id': scanner_players}}]
+                   if scanner_players | count > 0 else [] }}
+          - stop: alarm cleared
+      - conditions:
+          - condition: trigger
+            id: start
+          - condition: template
+            value_template: "{{ is_state_attr(level_sensor, 'test', true) }}"
+        sequence:
+          - action: evac_relay.end_test
+            data: { config_entry_id: "{{ entry_id }}" }
+          - stop: test interrupted by restart
+
+  - variables:
+      level: "{{ trigger.event.data.level if trigger.id == 'alarm' else states(level_sensor) }}"
+      is_test: "{{ (trigger.event.data.test if trigger.id == 'alarm' else state_attr(level_sensor, 'test')) | bool(false) }}"
+      prefix: "{{ 'This is a test. ' if is_test else '' }}"
+      spoken: >-
+        {{ prefix ~ {
+          'order': 'Evacuation order for our zone. Leave now. Evacuation order. Leave now.',
+          'shelter': 'Shelter in place order for our zone. Stay indoors.',
+          'warning': 'Evacuation warning for our zone. Prepare to leave.'
+        }[level] }}
+      title: >-
+        {{ ('TEST ' if is_test else '') ~ {
+          'order': 'EVACUATION ORDER', 'shelter': 'SHELTER IN PLACE', 'warning': 'EVACUATION WARNING'
+        }[level] }}
+      interval: "{{ {'order': 60, 'shelter': 300, 'warning': 600}[level] }}"
+      max_loops: "{{ 1 if is_test else {'order': 60, 'shelter': 12, 'warning': 6}[level] }}"
+      video: "{{ ha_lan_url | trim | trim('/') }}/evac_relay_media/evac_{{ 'test' if is_test else level }}.mp4"
+      scanner_url: "{{ state_attr(level_sensor, 'scanner_url') }}"
+      message: "{{ state_attr(level_sensor, 'message') or spoken }}"
+      phone_calls: >
+        {% set ns = namespace(c=[]) %}
+        {% for p in phones %}
+          {% set ns.c = ns.c + [{'action': p, 'data': {
+            'title': title,
+            'message': (prefix ~ message)[:240],
+            'data': {
+              'tag': 'evac-relay-' ~ entry_id,
+              'push': {'sound': {'name': 'default', 'critical': 1, 'volume': 1.0}, 'interruption-level': 'critical'},
+              'ttl': 0, 'priority': 'high', 'channel': 'alarm_stream',
+              'actions': [{'action': ack_action, 'title': 'Acknowledge'}]
+            }}}] %}
+        {% endfor %}
+        {{ ns.c }}
+      wake_calls: >
+        {% set ns = namespace(c=[]) %}
+        {% for r in tv_remotes %}{% set ns.c = ns.c + [{'action': 'remote.turn_on', 'target': {'entity_id': r}}] %}{% endfor %}
+        {% for s in speakers %}{% set ns.c = ns.c + [{'action': 'media_player.volume_set', 'target': {'entity_id': s}, 'data': {'volume_level': alarm_volume}}] %}{% endfor %}
+        {{ ns.c }}
+      scanner_calls: >
+        {% set ns = namespace(c=[]) %}
+        {% if scanner_url and not is_test %}
+          {% for s in scanner_players %}
+            {% set ns.c = ns.c + [{'action': 'media_player.play_media', 'target': {'entity_id': s},
+              'data': {'media': {'media_content_id': scanner_url, 'media_content_type': 'music'}}}] %}
+          {% endfor %}
+        {% endif %}
+        {{ ns.c }}
+      round_calls: >
+        {% set ns = namespace(c=[]) %}
+        {% for t in tv_players %}
+          {% set ns.c = ns.c + [{'action': 'media_player.play_media', 'target': {'entity_id': t},
+            'data': {'media': {'media_content_id': video, 'media_content_type': 'video/mp4'}}}] %}
+        {% endfor %}
+        {% for o in overlays %}
+          {% set ns.c = ns.c + [{'action': o, 'data': {'title': title, 'message': spoken,
+            'data': {'duration': 30, 'fontsize': 'max', 'position': 'center', 'color': 'red', 'transparency': '0%', 'interrupt': true}}}] %}
+        {% endfor %}
+        {% for s in speakers %}
+          {% set ns.c = ns.c + [{'action': 'media_player.play_media', 'target': {'entity_id': s},
+            'data': {'media': {'media_content_id': 'media-source://tts/' ~ tts_entity ~ '?message=' ~ (spoken | urlencode), 'media_content_type': 'music'}, 'announce': true}}] %}
+        {% endfor %}
+        {% for v in satellites %}
+          {% set ns.c = ns.c + [{'action': 'assist_satellite.announce', 'target': {'entity_id': v},
+            'data': {'message': spoken, 'preannounce': true}}] %}
+        {% endfor %}
+        {{ ns.c }}
+
+  - action: evac_relay.dispatch
+    data: { calls: "{{ phone_calls + wake_calls }}" }
+  - delay: { seconds: 3 }
+  - action: evac_relay.dispatch
+    data: { calls: "{{ scanner_calls }}" }
+
+  - repeat:
+      sequence:
+        - action: evac_relay.dispatch
+          data: { calls: "{{ round_calls }}" }
+        # Only an explicit acknowledge or clear ends the loop; 'unavailable' during a reload does not.
+        - wait_template: >
+            {{ is_state_attr(level_sensor, 'acknowledged', true) or is_state_attr(level_sensor, 'active', false) }}
+          timeout: { seconds: "{{ interval }}" }
+      until:
+        - condition: template
+          value_template: >
+            {{ is_state_attr(level_sensor, 'acknowledged', true)
+               or is_state_attr(level_sensor, 'active', false)
+               or repeat.index >= (max_loops | int) }}
+
+  - if:
+      - condition: template
+        value_template: "{{ is_test }}"
+    then:
+      - action: evac_relay.end_test
+        data: { config_entry_id: "{{ entry_id }}" }

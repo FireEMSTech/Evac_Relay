@@ -1,0 +1,23 @@
+[project]
+name = "evac-relay"
+version = "0.1.0"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "PL", "ASYNC"]
+ignore = ["PLR0913", "PLR0917", "PLR2004", "PLR0912", "PLR0911", "PLR0915", "RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
+force-sort-within-sections = true
+combine-as-imports = true
+known-third-party = ["homeassistant"]

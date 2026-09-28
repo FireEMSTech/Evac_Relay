@@ -1,0 +1,14 @@
+{
+  "domain": "evac_relay",
+  "name": "Evac Relay",
+  "after_dependencies": ["cloud", "imap"],
+  "codeowners": ["@FireEMSTech"],
+  "config_flow": true,
+  "dependencies": ["http", "webhook"],
+  "documentation": "https://github.com/FireEMSTech/Evac_Relay",
+  "integration_type": "service",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/FireEMSTech/Evac_Relay/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

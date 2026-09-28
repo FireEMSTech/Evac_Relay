@@ -1,0 +1,54 @@
+acknowledge:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: evac_relay
+clear:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: evac_relay
+test:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: evac_relay
+    level:
+      default: warning
+      selector:
+        select:
+          options: [warning, shelter, order]
+ingest:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: evac_relay
+    text:
+      required: true
+      selector:
+        text:
+          multiline: true
+    source:
+      default: manual
+      selector:
+        text:
+    can_trigger:
+      default: false
+      selector:
+        boolean:
+end_test:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: evac_relay
+dispatch:
+  fields:
+    calls:
+      required: true
+      selector:
+        object:
