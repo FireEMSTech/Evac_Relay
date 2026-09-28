@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import filecmp
+import hashlib
 import logging
 from pathlib import Path
 import shutil
@@ -18,6 +19,7 @@ from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.network import NoURLAvailableError
 from homeassistant.helpers.service import async_register_admin_service
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
 
@@ -51,6 +53,7 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 BLUEPRINT_SRC = Path(__file__).parent / "blueprints" / "evac_relay_response.yaml"
+BLUEPRINT_STORE_VERSION = 1
 ISSUE_KEYS = (
     "no_email_source",
     "imap_entry_missing",
@@ -305,17 +308,38 @@ def _notify_twilio_urls(hass: HomeAssistant, entry: ConfigEntry, manager: EvacMa
 
 
 async def _install_blueprint(hass: HomeAssistant) -> None:
-    """Copy the bundled blueprint into /config once; flag an update instead of overwriting edits."""
+    """Copy the bundled blueprint into /config and keep it current.
+
+    The hash of the copy Evac Relay wrote is remembered, so a newer bundled
+    version replaces an installed copy the user never touched (existing
+    automations keep their inputs). An edited copy is never overwritten; a
+    Repairs issue explains how to take the update instead.
+    """
     dest = Path(hass.config.path("blueprints", "automation", DOMAIN, BLUEPRINT_SRC.name))
+    store: Store[dict[str, str]] = Store(hass, BLUEPRINT_STORE_VERSION, f"{DOMAIN}.blueprint")
+    remembered = ((await store.async_load()) or {}).get("installed_sha256")
 
-    def _sync() -> str:
-        if not dest.exists():
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(BLUEPRINT_SRC, dest)
-            return "installed"
-        return "current" if filecmp.cmp(BLUEPRINT_SRC, dest, shallow=False) else "outdated"
+    def _sync() -> tuple[str, str]:
+        bundled = hashlib.sha256(BLUEPRINT_SRC.read_bytes()).hexdigest()
+        if dest.exists():
+            if filecmp.cmp(BLUEPRINT_SRC, dest, shallow=False):
+                return "current", bundled
+            if hashlib.sha256(dest.read_bytes()).hexdigest() != remembered:
+                return "outdated", bundled
+            status = "updated"
+        else:
+            status = "installed"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(BLUEPRINT_SRC, dest)
+        return status, bundled
 
-    status = await hass.async_add_executor_job(_sync)
+    status, bundled = await hass.async_add_executor_job(_sync)
+    if status != "outdated" and remembered != bundled:
+        await store.async_save({"installed_sha256": bundled})
+    if status == "updated":
+        _LOGGER.info("Replaced the unmodified Evac Relay blueprint with the bundled version")
+        if hass.services.has_service("automation", "reload"):
+            await hass.services.async_call("automation", "reload", blocking=True)
     if status == "installed":
         persistent_notification.async_create(
             hass,

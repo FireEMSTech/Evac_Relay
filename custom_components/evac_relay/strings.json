@@ -167,7 +167,7 @@
     },
     "blueprint_outdated": {
       "title": "The Evac Relay alarm blueprint has an update",
-      "description": "The blueprint file at {path} differs from the version bundled with this Evac Relay release, either because you edited it or because Evac Relay was updated. To take the new version, rename or delete that file and reload Evac Relay; it will be reinstalled, and existing automations keep their settings."
+      "description": "The blueprint file at {path} differs from the version bundled with this Evac Relay release and was not written by Evac Relay, so it is treated as your own edit and left alone. To take the new version, rename or delete that file and reload Evac Relay; it will be reinstalled, and existing automations keep their settings."
     },
     "twilio_error": {
       "title": "Evac Relay could not process a Twilio request",

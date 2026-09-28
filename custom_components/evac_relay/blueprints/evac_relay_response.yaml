@@ -70,7 +70,12 @@ blueprint:
             - domain: remote
           multiple: true
     tv_players:
-      name: TVs to show the full-screen alert (Apple TV AirPlay, Chromecast/Google TV)
+      name: TVs to show the full-screen alert (Chromecast/Google TV, Apple TV AirPlay)
+      description: >
+        Apple TV needs working AirPlay video playback from Home Assistant. On current tvOS
+        the Apple TV integration often cannot play a URL (the log shows "not authenticated"
+        or HTTP 500) and the attempt only pauses what was playing, so test with the
+        Test alarm before leaving an Apple TV here.
       default: []
       selector:
         entity:
@@ -178,13 +183,14 @@ actions:
   - variables:
       level: "{{ trigger.event.data.level if trigger.id == 'alarm' else states(level_sensor) }}"
       is_test: "{{ (trigger.event.data.test if trigger.id == 'alarm' else state_attr(level_sensor, 'test')) | bool(false) }}"
-      prefix: "{{ 'This is a test. ' if is_test else '' }}"
+      # Rendered variables are stripped, so the space is added where the prefix is joined.
+      prefix: "{{ 'This is a test.' if is_test else '' }}"
       spoken: >-
-        {{ prefix ~ {
+        {{ (prefix ~ ' ' ~ {
           'order': 'Evacuation order for our zone. Leave now. Evacuation order. Leave now.',
           'shelter': 'Shelter in place order for our zone. Stay indoors.',
           'warning': 'Evacuation warning for our zone. Prepare to leave.'
-        }[level] }}
+        }[level]) | trim }}
       title: >-
         {{ ('TEST ' if is_test else '') ~ {
           'order': 'EVACUATION ORDER', 'shelter': 'SHELTER IN PLACE', 'warning': 'EVACUATION WARNING'
@@ -199,7 +205,7 @@ actions:
         {% for p in phones %}
           {% set ns.c = ns.c + [{'action': p, 'data': {
             'title': title,
-            'message': (prefix ~ message)[:240],
+            'message': ((prefix ~ ' ' ~ message) | trim)[:240],
             'data': {
               'tag': 'evac-relay-' ~ entry_id,
               'push': {'sound': {'name': 'default', 'critical': 1, 'volume': 1.0}, 'interruption-level': 'critical'},

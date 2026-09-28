@@ -107,7 +107,7 @@ Paste the direct stream URL of a local fire/EMS feed from [Broadcastify](https:/
 
 ### 4. House alarm blueprint
 
-Create an automation from **Evac Relay: house alarm**. If you edited an installed copy and Evac Relay later ships a newer one, Repairs tells you how to take the update.
+Create an automation from **Evac Relay: house alarm**. When Evac Relay ships a newer blueprint, an unmodified installed copy is replaced automatically and your automations keep their inputs. If you edited the installed copy, Repairs tells you how to take the update instead.
 
 | Input | Notes |
 |---|---|
@@ -115,7 +115,7 @@ Create an automation from **Evac Relay: house alarm**. If you edited an installe
 | Speakers | Players that support announcements (Sonos, ESPHome, Music Assistant) pause and resume; others, such as Cast, stop what was playing |
 | Voice satellites | Home Assistant Voice PE and other Assist satellites |
 | TV remotes | Wakes Apple TV and Android TV Remote devices |
-| TVs | Apple TV (AirPlay) or Cast devices play a full-screen alert video with an alarm tone |
+| TVs | Cast devices, and Apple TVs where AirPlay video playback from Home Assistant works, play a full-screen alert video with an alarm tone. On current tvOS the Apple TV integration frequently fails with "not authenticated" or HTTP 500 and only pauses what was playing, so run **Test alarm** before leaving an Apple TV in this list |
 | TV overlays | Android/Google TV with the Notifications for Android TV app |
 | Scanner speakers | Plays the scanner stream set in Evac Relay. Keep these separate from announcement speakers that don't support announcements |
 | Home Assistant LAN address | TVs fetch the alert video from `<address>/evac_relay_media/` |

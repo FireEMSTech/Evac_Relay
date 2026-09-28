@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+import hashlib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import Context, HomeAssistant
 from homeassistant.exceptions import ServiceValidationError, Unauthorized
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.storage import Store
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from homeassistant.util.aiohttp import MockRequest
@@ -18,7 +20,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 import voluptuous as vol
 
-from custom_components.evac_relay import twilio_sig
+from custom_components.evac_relay import BLUEPRINT_SRC, twilio_sig
 from custom_components.evac_relay.const import DOMAIN, EVENT_ALARM, EVENT_MESSAGE, NWS_API
 
 TOKEN = "tok_123"
@@ -402,6 +404,36 @@ async def test_repairs_and_blueprint_install(hass: HomeAssistant) -> None:
     assert reg.async_get_issue(DOMAIN, f"county_not_registered_{entry.entry_id}") is None
     # The selected IMAP entry doesn't exist in this test instance.
     assert reg.async_get_issue(DOMAIN, f"imap_entry_missing_{entry.entry_id}")
+
+
+async def test_blueprint_unmodified_copy_is_updated(hass: HomeAssistant) -> None:
+    """An installed copy that Evac Relay wrote (hash remembered) is replaced by a newer bundled one."""
+    entry = await _setup(hass)
+    bp = Path(hass.config.path("blueprints/automation/evac_relay/evac_relay_response.yaml"))
+    bundled = await hass.async_add_executor_job(BLUEPRINT_SRC.read_bytes)
+    old = b"blueprint:\n  name: older Evac Relay blueprint\n  domain: automation\n"
+    await hass.async_add_executor_job(bp.write_bytes, old)
+    await Store(hass, 1, f"{DOMAIN}.blueprint").async_save({"installed_sha256": hashlib.sha256(old).hexdigest()})
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert await hass.async_add_executor_job(bp.read_bytes) == bundled
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "blueprint_outdated") is None
+
+
+async def test_blueprint_edited_copy_is_kept(hass: HomeAssistant) -> None:
+    """A copy the user edited is left alone and flagged in Repairs."""
+    entry = await _setup(hass)
+    bp = Path(hass.config.path("blueprints/automation/evac_relay/evac_relay_response.yaml"))
+    edited = await hass.async_add_executor_job(bp.read_bytes) + b"\n# household tweak\n"
+    await hass.async_add_executor_job(bp.write_bytes, edited)
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert await hass.async_add_executor_job(bp.read_bytes) == edited
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "blueprint_outdated")
 
 
 # ---------------------------------------------------------------- setup wizard and options

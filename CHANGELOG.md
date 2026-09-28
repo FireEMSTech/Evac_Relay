@@ -4,6 +4,17 @@ All notable changes to Evac Relay. The format follows [Keep a Changelog](https:/
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-27
+
+### Fixed
+
+- Announcements and phone messages in test mode ran the words together ("This is a test.Evacuation warning"); Home Assistant strips rendered variables, so the space is now added where the prefix is joined.
+
+### Changed
+
+- The bundled blueprint now updates itself: Evac Relay remembers the hash of the copy it installed, so an unmodified copy is replaced by a newer bundled version (automations keep their inputs) and only an edited copy raises the Repairs issue.
+- Documented that Apple TV full-screen alerts depend on AirPlay video playback working from Home Assistant; on current tvOS the attempt often fails ("not authenticated" or HTTP 500) and only pauses what was playing. Test before leaving an Apple TV in the TVs input.
+
 ## [0.1.0] - 2026-09-27
 
 First public release.
@@ -20,5 +31,6 @@ First public release.
 - Repairs issues for incomplete setup, missing IMAP entries, Twilio URL problems, and outdated blueprint copies.
 - Lake County, CA county profile and setup guide.
 
-[Unreleased]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/FireEMSTech/Evac_Relay/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/FireEMSTech/Evac_Relay/releases/tag/v0.1.0
